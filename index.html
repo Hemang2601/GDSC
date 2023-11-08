@@ -1,171 +1,384 @@
+<?php
+session_start();
+
+if (!isset($_SESSION["email"])) {
+    header("Location: index.html");
+    exit();
+}
+
+// Establish a database connection
+$conn = new mysqli("localhost", "root", "", "bank");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Retrieve user data from the database, including the profile photo URL
+$email = $_SESSION["email"];
+$sql = "SELECT username FROM signup WHERE email = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$stmt->bind_result($username);
+
+if ($stmt->fetch()) {
+    // User data retrieved, you can now use $username and $profilePhoto in your HTML
+}
+$stmt->close();
+$conn->close();
+?>
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Automatic Certificate System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Bank Appointment</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-       /* Reset default margin and padding */
-* {
-    margin: 0;
-    padding: 0;
-}
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
 
-/* Set a background color for the entire page */
-body {
-    font-family: Arial, sans-serif;
-    background-image: url(https://png.pngtree.com/png-vector/20230607/ourmid/pngtree-elegant-modern-blank-blue-gold-graduation-certificate-border-frame-vector-png-image_7122590.png);
-    display: flex;
-    background-repeat: no-repeat;
-    background-size: cover;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
+        .header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px 0; /* Increase the top and bottom padding of the header */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 50px;
+        }
 
-.container {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
+        .title {
+            margin-left: 20px;
+            font-size: 36px;
+        }
 
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-}
+        .profile-container {
+            display: none;
+            position: absolute;
+            top: 80px; /* Increase the top distance between header and profile */
+            right: 50px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            z-index: 1;
+            background-color: #ffffff;
+        }
 
-form {
-    text-align: center;
-}
+        .profile-button {
+            cursor: pointer;
+            padding: 5px;
+            position: relative;
+            
+        }
 
-label {
-    font-weight: bold;
-}
+        .profile-image {
+            max-width: 100px;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            margin-right: 20px;
+        }
 
-input[type="text"],
-input[type="date"] {
-    width: 100%;
-    padding: 8px;
-    margin: 5px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
+        .profile-image:hover {
+            transform: scale(1.2);
+        }
 
-button[type="button"] {
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 20px;
-    cursor: pointer;
-    margin-top: 10px;
-    font-size: 16px;
-}
+        .profile-menu {
+            position: absolute;
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            top: 100%;
+            margin-top: 20px;
+           margin-right: 10px;
+            right: 0;
+            z-index: 2;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
 
-button[type="button"]:hover {
-    background-color: #0056b3;
-}
+        .profile-button:hover .profile-menu {
+            display: block;
+        }
 
-.certificate {
-    border: 2px solid #333;
-    padding: 20px;
-    text-align: center;
-    margin-top: 20px;
-    background-image: url(https://png.pngtree.com/png-vector/20230607/ourmid/pngtree-elegant-modern-blank-blue-gold-graduation-certificate-border-frame-vector-png-image_7122590.png);
-    background-repeat: no-repeat;
-    background-size: cover;
-}
+        .text-container {
+            margin-top: 20px; /* Add space between header and form-container */
+            margin-bottom: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 500px;
+        }
 
-.download-btn {
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 20px;
-    cursor: pointer;
-    font-size: 16px;
-    margin-top: 20px;
-}
+        .form-container {
+            background-color: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 400px;
+        }
 
-.download-btn:hover {
-    background-color: #0056b3;
-}
+        h1 {
+            color: #007bff;
+            text-align: center;
+        }
 
+        label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="time"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        select {
+            background-color: #f9f9f9;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Unique CSS for the form container */
+        .form-container {
+            background-image: linear-gradient(to bottom, #ffffff, #e0e0e0);
+            padding: 30px;
+        }
+
+        /* Unique CSS for the button */
+        button {
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #e04400;
+        }
+
+        /* Custom styling for checkboxes */
+        .custom-control-label::before {
+            border-radius: 4px;
+        }
+
+        .custom-checkbox .custom-control-label::before {
+            border-radius: 4px;
+        }
+
+        .custom-control-label::before,
+        .custom-control-label::after {
+            background-color: #007bff;
+        }
+
+        .custom-control-input:checked ~ .custom-control-label::before {
+            background-color: #007bff;
+        }
+
+        .user-container
+        {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            
         
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        }
+        .profile-content {
+                 display: flex;
+                 align-items: center;
+        }
 
+        .profile-image {
+            max-width: 100px;
+            border-radius: 50%;
+            transition: transform 0.3s;
+             margin-right: 20px; /* Add margin to separate the image and name */
+            }
+
+            @media (max-width: 768px) {
+    .title {
+        font-size: 20px;
+        margin-left: 5px;
+    }
+
+    .profile-image {
+        max-width: 50px;
+        margin-right: 5px;
+    }
+
+    .text-container {
+        padding: 5px;
+    }
+
+    .form-container {
+        padding: 5px;
+    }
+}
+          
+
+    </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>Generate Certificate</h1>
-        <form id="certificateForm">
-            <label for="name">Recipient's Name:</label>
-            <input type="text" id="name" required>
-            <br><br>
+<div class="header">
+    <div class="title">Book Appointment</div>
+    <div class="profile-button" onclick="toggleProfile()">
+    <div class="user-container">
+        <div class="user-name"><?php echo $username; ?></div>
+    </div>
+    <div class="profile-content">
+                <img class="profile-image" src="profilephoto.jpg" alt="Your Profile">
+    </div>
+    <div class="profile-menu">
+    <button onclick="openProfile()">Profile</button>
+    <a href="appointments.php"><button>Appointments</button></a>
+    <a href="logout.php"><button>Logout</button></a>
+</div>
+    </div>
+</div>
+
+
+      
+    <div class="container form-container">
+        <form action="bookingprocess.php" method="POST" onsubmit="return validateForm()">
+            <label>Transaction Types:</label>
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="deposit" name="transaction_type[]" value="Deposit">
+                <label class="custom-control-label" for="deposit">Deposit</label>
+            </div>
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="withdraw" name="transaction_type[]" value="Withdraw">
+                <label class="custom-control-label" for="withdraw">Withdraw</label>
+            </div>
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="printing" name="transaction_type[]" value="Passbook Printing">
+                <label class="custom-control-label" for="printing">Passbook Printing</label>
+            </div>
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="ipo" name="transaction_type[]" value="IPO">
+                <label class="custom-control-label" for="ipo">IPO</label>
+            </div>
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="loan" name="transaction_type[]" value="Loan">
+                <label class="custom-control-label" for="loan">Loan</label>
+            </div>
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="share" name="transaction_type[]" value="Share">
+                <label class="custom-control-label" for="share">Share</label>
+            </div>
+            <!-- Add more transaction types here -->
+
             <label for="date">Date:</label>
-            <input type="date" id="date" required>
-            <br><br>
-            <button type="button" onclick="generateCertificate()">Generate Certificate</button>
+            <input type="date" name="date" id="date" required>
+
+            <label for="time">Time:</label>
+            <input type="time" name="time" id="time" required min="10:00" max="16:00" required>
+
+            <label for="bank_name">Bank Name:</label>
+            <select name="bank_name" id="bank_name" required>
+                <option value="">Select Bank</option>
+                <option value="State Bank of India (SBI)">State Bank of India (SBI)</option>
+                <option value="HDFC Bank">HDFC Bank</option>
+                <option value="ICICI Bank">ICICI Bank</option>
+                <option value="Axis Bank">Axis Bank</option>
+                <option value="Punjab National Bank (PNB)">Punjab National Bank (PNB)</option>
+                <option value="Bank of Baroda (BOB)">Bank of Baroda (BOB)</option>
+                <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                <option value="IDBI Bank">IDBI Bank</option>
+                <option value="Canara Bank">Canara Bank</option>
+                <option value="Union Bank of India">Union Bank of India</option>
+                <option value="Central Bank of India">Central Bank of India</option>
+                <option value="Bank of India">Bank of India</option>
+                <option value="Indian Bank">Indian Bank</option>
+                <option value="UCO Bank">UCO Bank</option>
+                <option value="YES Bank">YES Bank</option>
+                <option value="IndusInd Bank">IndusInd Bank</option>
+                <option value="RBL Bank">RBL Bank</option>
+                <option value="Federal Bank">Federal Bank</option>
+                <option value="Karnataka Bank">Karnataka Bank</option>
+                <option value="Corporation Bank">Corporation Bank</option>
+            </select>
+            <div id="bankNameMessage" style="color: red;"></div>
+
+            <button type="submit">Book Appointment</button>
         </form>
-        <div class="certificate" id="generatedCertificate" style="display: none;">
-            <h2>Certificate of Completion</h2>
-            <p>This is to certify that</p>
-            <h3 id="certificateName"></h3>
-            <p>has successfully completed the course on</p>
-            <h3 id="certificateDate"></h3>
-            <button class="download-btn" onclick="downloadCertificate()">Download Certificate</button>
-        </div>
     </div>
 
     <script>
-        function generateCertificate() {
-            const name = document.getElementById('name').value;
-            const date = document.getElementById('date').value;
-
-            // Update the certificate with user input
-            document.getElementById('certificateName').textContent = name;
-            document.getElementById('certificateDate').textContent = date;
-
-            // Show the generated certificate and download button
-            document.getElementById('generatedCertificate').style.display = 'block';
-            document.querySelector('.download-btn').style.display = 'block';
+        function toggleProfile() {
+            const profileMenu = document.querySelector('.profile-menu');
+            profileMenu.style.display = (profileMenu.style.display === 'block') ? 'none' : 'block';
         }
 
-        function downloadCertificate() {
-            const certificateElement = document.querySelector('.certificate');
-        
-            // Create an options object for html2pdf
-            const pdfOptions = {
-                margin: 10,
-                filename: 'certificate.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            };
-        
-            // Use html2pdf to generate the PDF
-            html2pdf()
-                .from(certificateElement)
-                .set(pdfOptions)
-                .outputPdf()
-                .then(function (pdf) {
-                    // Create a temporary anchor element to trigger the download
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(pdf);
-                    a.download = 'certificate.pdf';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                });
+        function openProfile() {
+            // Redirect to the profile page
+            window.location.href = 'profilepage.php';
         }
-        
-        
+
+        function validateForm() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            let selectedItems = [];
+
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedItems.push(checkbox.value);
+                }
+            });
+
+            if (selectedItems.length === 0) {
+                alert('Please select at least one transaction type.');
+                return false;
+            }
+
+            const bankSelect = document.getElementById('bank_name');
+
+            if (bankSelect.value === '') {
+                document.getElementById('bankNameMessage').textContent = 'Please select a bank.';
+                return false;
+            }
+
+            // Form is valid, display a success message and print the selected items
+            alert('Appointment successfully booked!\nSelected Items: ' + selectedItems.join(', '));
+            window.location.href = 'appointmentpage.php';
+            return true;
+        }
     </script>
 </body>
+
 </html>
